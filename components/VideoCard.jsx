@@ -1,11 +1,29 @@
 import { useState } from "react";
 import { ResizeMode, Video } from "expo-av";
-import { View, Text, TouchableOpacity, Image } from "react-native";
-
+import { View, Text, TouchableOpacity, Image, Modal, Alert } from "react-native";
 import { icons } from "../constants";
+import { addVideoToSaved } from "../lib/appwrite";
 
-const VideoCard = ({ title, creator, avatar, thumbnail, video }) => {
+const VideoCard = ({ title, creator, avatar, thumbnail, video, userId, videoId }) => {
   const [play, setPlay] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  const handleSave = async () => {
+    setMenuVisible(false);
+    try {
+      message = await addVideoToSaved(userId, videoId);
+      if(message === "Success"){
+        Alert.alert("Success", "Video saved successfully");
+      } else{
+        Alert.alert("Error", "Video already Saved");
+      }
+      
+      
+    } catch (error) {
+      Alert.alert("Error", error.message);
+    }
+    
+  };
 
   return (
     <View className="flex flex-col items-center px-4 mb-14">
@@ -18,28 +36,27 @@ const VideoCard = ({ title, creator, avatar, thumbnail, video }) => {
               resizeMode="cover"
             />
           </View>
-
           <View className="flex justify-center flex-1 ml-3 gap-y-1">
-            <Text
-              className="font-psemibold text-sm text-white"
-              numberOfLines={1}
-            >
+            <Text className="font-psemibold text-sm text-white" numberOfLines={1}>
               {title}
             </Text>
-            <Text
-              className="text-xs text-gray-100 font-pregular"
-              numberOfLines={1}
-            >
+            <Text className="text-xs text-gray-100 font-pregular" numberOfLines={1}>
               {creator}
             </Text>
           </View>
         </View>
-
-        <View className="pt-2">
-          <Image source={icons.menu} className="w-5 h-5" resizeMode="contain" />
-        </View>
+        <TouchableOpacity onPress={() => setMenuVisible(true)}>
+          <View className="pt-2">
+            <Image
+              source={icons.menu}
+              className="w-5 h-5"
+              resizeMode="contain"
+            />
+          </View>
+        </TouchableOpacity>
       </View>
 
+      {/* Video or thumbnail display logic */}
       {play ? (
         <Video
           source={{ uri: video }}
@@ -47,11 +64,7 @@ const VideoCard = ({ title, creator, avatar, thumbnail, video }) => {
           resizeMode={ResizeMode.CONTAIN}
           useNativeControls
           shouldPlay
-          onPlaybackStatusUpdate={(status) => {
-            if (status.didJustFinish) {
-              setPlay(false);
-            }
-          }}
+          onPlaybackStatusUpdate={status => status.didJustFinish && setPlay(false)}
         />
       ) : (
         <TouchableOpacity
@@ -61,10 +74,9 @@ const VideoCard = ({ title, creator, avatar, thumbnail, video }) => {
         >
           <Image
             source={{ uri: thumbnail }}
-            className="w-full h-full rounded-xl mt-3"
+            className="w-full h-full rounded-xl"
             resizeMode="cover"
           />
-
           <Image
             source={icons.play}
             className="w-12 h-12 absolute"
@@ -72,6 +84,26 @@ const VideoCard = ({ title, creator, avatar, thumbnail, video }) => {
           />
         </TouchableOpacity>
       )}
+
+      {/* Menu Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={menuVisible}
+        onRequestClose={() => setMenuVisible(!menuVisible)}
+      >
+        <View className="flex-1 justify-end items-center bg-transparent">
+          <View className="bg-primary w-full py-4">
+            <TouchableOpacity onPress={handleSave} className="py-2 px-4">
+              <Text className="font-psemibold text-center text-lg text-white">Save</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity onPress={() => setMenuVisible(false)} className="py-2 px-4 mt-2">
+              <Text className="font-psemibold text-center text-lg text-white">Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
